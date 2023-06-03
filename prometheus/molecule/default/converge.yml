@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: "Include install_prometheus_and_efk.prometheus"
+      ansible.builtin.include_role:
+        name: "install_prometheus_and_efk.prometheus"
