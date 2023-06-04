@@ -5,6 +5,6 @@
 
 **Тут можно определить:**
 
-node_exporter_version - версию node для установки.
+node_exporter_version - версию node exporter для установки.
 
 user_node_exporter - имя пользователя
