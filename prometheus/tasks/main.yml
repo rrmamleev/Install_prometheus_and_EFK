@@ -1,2 +1,91 @@
 ---
-# tasks file for prometheus
+# tasks for install and configure prometheus.
+
+# Проверяем установлен ли уже прометиус
+- name: "Ensure prometheus bin exists."
+  ansible.builtin.stat:
+    path: "/usr/local/bin/prometheus"
+  register: prometheus_instance
+
+- name: "Make group for prometheus."
+  ansible.builtin.group:
+    name: {{ user_prometheus }}
+    state: present
+  when: not prometheus_insrance.stat.exists #Если прометиус уже установлен - плейбук свалится с ошибкой
+
+- name: "Make user for prometheus."
+  ansible.builtin.user:
+    name: {{ user_prometheus }}
+    group: {{ user_prometheus }}
+    shell: /bin/false
+    comment: Prometheus server user
+
+- name: "Create temp directory for prometheus."
+  ansible.builtin.file:
+    path: /tmp/prometheus
+    state: directory
+    mode: 0755
+
+- name: "Download and unarchive prometheus in temp directory."
+  ansible.builtin.unarchive:
+    src: "{{ prometheus_url_ver }}"
+    dest: /tmp/prometheus
+    remote_src: true
+    list_files: yes
+    extra_opts: [--strip-components=1]
+
+- name: "Copy prometheus for instance folder and change permissions."
+  ansible.builtin.copy:
+    src: /tmp/prometheus/prometheus
+    dest: /usr/local/bin/prometheus
+    mode: 0755
+    remote_src: true
+
+- name: "Copy prometool for instance folder and change permissions."
+  ansible.builtin.copy:
+    src: /tmp/prometheus/promtool
+    dest: /usr/local/bin/promtool
+    mode: 0755
+    remote_src: true
+
+- name: "Create Prometheus folders."
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0750
+    owner: {{ user_prometheus }}
+    group: {{ user_prometheus }}
+  with_items:
+    - "/etc/prometheus"
+    - "/var/lib/prometheus"
+
+- name: "Install prometheus option."
+  ansible.builtin.template:
+    src: prometheus_option.j2
+    dest: /etc/systemd/prometheus
+  notify:
+  - Reload systemd unit
+
+- name: "Install prometheus systemd file"
+  ansible.builtin.template:
+    src: prometheus_systemd_unit.j2
+    dest: /usr/lib/systemd/system/prometheus.service
+  notify:
+  - Reload systemd unit
+
+- name: "Install prometheus config file"
+  ansible.builtin.template:
+    src: prometheus_config.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: {{ user_prometheus }}
+    group: {{ user_prometheus }}
+    mode: 0640
+  notify:
+  - Reload systemd unit
+
+- name: "Start systemd service to lunch prometheus"
+  ansible.builtin.systemd:
+    daemon-reload: true
+    state: started
+    enabled: yes
+    name: prometheus
