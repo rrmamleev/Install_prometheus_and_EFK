@@ -1,7 +1,7 @@
 ---
 # handlers file for elastic_and_kibana
 
-  - name: Restart systemd unit kibana
+  - name: "Restart systemd kibana"
     ansible.builtin.systemd:
       daemon-reload: true
       state: restarted

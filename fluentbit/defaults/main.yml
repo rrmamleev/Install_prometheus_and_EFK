@@ -1,0 +1,3 @@
+---
+# defaults file for fluentbit
+fluentbit_ver: 2.0.6

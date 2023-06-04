@@ -1,0 +1,48 @@
+---
+# tasks file for fluentbit
+
+# Добавляем ключ
+- name: "Add fluentbit repo key"
+  ansible.builtin.get_url:
+    url: https://packages.fluentbit.io/fluentbit.key
+    dest: /usr/share/keyrings/fluentbit-keyring.asc
+
+# Добавляем репозиторий
+- name: "Add fluentbit repo"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/fluentbit-keyring.asc] https://packages.fluentbit.io/ubuntu/{{ ansible_distribution_release }} {{ ansible_distribution_release }} main"
+    state: present
+
+# Устанавливаем флюентбит
+- name: "Install fluentbit"
+  ansible.builtin.apt:
+    name: fluent-bit={{ fluentbit_ver }}
+    state: present
+    update_cache: true
+
+# Запускаем сервис
+- name: "Start systemd service fluentbit"
+  ansible.builtin.systemd:
+    daemon-reload: true
+    state: started
+    enabled: yes
+    name: fluent-bit
+
+# Сохраняем пароль
+- name: "Register the elastic password"
+  ansible.builtin.shell:
+    cmd: "cat /home/{{ system_user }}/secret | grep New | cut -c 12-33"
+  register: elastic_token
+
+- name: "Set fact for elastic password"
+  set_fact: 
+    elastic_token={{ elastic_token.stdout }}
+
+# Настраиваем fluentbit
+- name: "Set fluentbit config file"
+  ansible.builtin.template:
+    src: fluentbit.j2
+    dest: /etc/fluent-bit/fluent-bit.conf
+  notify:
+  - Restart systemd fluentbit
+  
