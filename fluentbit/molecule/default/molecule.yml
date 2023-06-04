@@ -4,8 +4,8 @@ dependency:
 driver:
   name: vagrant
 platforms:
-  - name: centos7
-    box: bento/centos-7.9
+  - name: host
+    box: ubuntu/focal64
     interfaces:
       - network_name: private_network
         ip: 192.168.50.2

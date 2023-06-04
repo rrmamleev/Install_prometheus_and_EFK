@@ -16,7 +16,7 @@
 # Устанавливаем флюентбит
 - name: "Install fluentbit"
   ansible.builtin.apt:
-    name: fluent-bit={{ fluentbit_ver }}
+    name: "fluent-bit={{ fluentbit_ver }}"
     state: present
     update_cache: true
 

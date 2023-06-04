@@ -10,15 +10,15 @@
 # Создаем группу для прометиуса
 - name: "Make group for prometheus."
   ansible.builtin.group:
-    name: {{ user_prometheus }}
+    name: "{{ user_prometheus }}"
     state: present
   when: not prometheus_insrance.stat.exists #Если прометиус уже установлен - плейбук свалится с ошибкой
 
 # Создаем пользователя для прометиуса
 - name: "Make user for prometheus."
   ansible.builtin.user:
-    name: {{ user_prometheus }}
-    group: {{ user_prometheus }}
+    name: "{{ user_prometheus }}"
+    group: "{{ user_prometheus }}"
     shell: /bin/false
     comment: Prometheus server user
 
@@ -60,8 +60,8 @@
     path: "{{ item }}"
     state: directory
     mode: 0750
-    owner: {{ user_prometheus }}
-    group: {{ user_prometheus }}
+    owner: "{{ user_prometheus }}"
+    group: "{{ user_prometheus }}"
   with_items:
     - "/etc/prometheus"
     - "/var/lib/prometheus"
@@ -87,8 +87,8 @@
   ansible.builtin.template:
     src: prometheus_config.j2
     dest: /etc/prometheus/prometheus.yml
-    owner: {{ user_prometheus }}
-    group: {{ user_prometheus }}
+    owner: "{{ user_prometheus }}"
+    group: "{{ user_prometheus }}"
     mode: 0640
   notify:
   - Reload systemd unit

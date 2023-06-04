@@ -16,13 +16,13 @@
 # Устанавливаем elasticsearch
 - name: "Install Elasticsearch"
   ansible.builtin.apt_repository:
-    name: elasticsearch={{ elastic_ver }}
+    name: "elasticsearch={{ elastic_ver }}"
     state: present
 
 # Устанавливаем kibana
 - name: "Install Kibana"
   ansible.builtin.apt_repository:
-    name: kibana={{ kibana_ver }}
+    name: "kibana={{ kibana_ver }}"
     state: present
 
 # Стартуем сервис Эластик
