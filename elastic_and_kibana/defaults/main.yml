@@ -1,0 +1,5 @@
+---
+# defaults file for elastic_and_kibana
+
+elastic_ver: 8.5.3
+kibana_ver: 8.5.3

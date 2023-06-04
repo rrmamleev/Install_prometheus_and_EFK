@@ -1,0 +1,96 @@
+---
+# tasks file for elastic_and_kibana
+
+- name: "Install dependencies"
+  ansible.builtin.package:
+    name: apt-transport-https
+    state: present
+
+- name: "Add Yandex APT repository"
+  ansible.builtin.apt_repository:
+    repo: "[trusted=yes] https://mirror.yandex.ru/mirrors/elastic/8/ stable main"
+    state: present
+
+- name: "Install Elasticsearch"
+  ansible.builtin.apt_repository:
+    name: elasticsearch
+    state: {{ elastic_ver }}
+
+- name: "Install Kibana"
+  ansible.builtin.apt_repository:
+    name: kibana
+    state: {{ kibana_ver }}
+
+- name: "Start systemd service elasticsearch"
+  ansible.builtin.systemd:
+    daemon-reload: true
+    state: started
+    enabled: yes
+    name: elasticsearch
+
+- name: "Start systemd service kibana"
+  ansible.builtin.systemd:
+    daemon-reload: true
+    state: started
+    enabled: yes
+    name: kibana
+
+- name: "Ensure passwd file for elasticsearch"
+  ansible.builtin.stat:
+    path: "/home/{{ system_user }}/secret"
+  register: elasticsearch
+
+- name: "Reset elasticsearch password"
+  ansible.builtin.expect:
+    command: /bin/bash -c "/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic > /home/{{ system_user }}/secret"
+    responses:
+      (.*)Please confirm that you would like to continue \[y/N\](.*): "y"
+  when: not elasticsearch.stat.exists
+
+- name: "Chmod for elasticsearch password"
+  ansible.builtin.file:
+    path: "/home/{{ system_user }}/secret"
+    mode: 0600
+
+- name: "Add user kibana to the group elasticsearch"
+  ansible.builtin.user:
+    name: kibana
+    groups: elasticsearch
+    append: true
+
+- name: "Ensure passwd file for kibana"
+  ansible.builtin.stat:
+    path: "/home/{{ system_user }}/kibana_secret"
+  register: kibana_token_file
+
+- name: "Reset kibana password"
+  ansible.builtin.expect:
+    command: /bin/bash -c "/usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system > /home/{{ system_user }}/kibana_secret"
+    responses:
+      (.*)Please confirm that you would like to continue \[y/N\](.*): "y"
+  when: not kibana_token_file.stat.exists
+
+- name: "Chmod for kibana password"
+  ansible.builtin.file:
+    path: "/home/{{ system_user }}/kibana_secret"
+    mode: 0600
+
+- name: "Register the kibana password"
+  ansible.builtin.shell:
+    cmd: "cat /home/{{ system_user }}/kibana_secret | grep New | cut -c 12-33"
+  register: kibana_token
+
+- name: "Set fact for kibana_token variable"
+  set_fact: 
+    kibana_token={{ kibana_token.stdout }}
+
+- name: "Set kibana config file"
+  ansible.builtin.template:
+    src: kibana.j2
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: 0660
+  notify:
+  - Restart systemd unit kibana
+  

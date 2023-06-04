@@ -5,16 +5,15 @@
 # Создаем группу для экспортера
 - name: "Make group for node_exporter"
   ansible.builtin.group:
-    name: node_exporter
+    name: {{ user_node_exporter }}
     state: present
 
 # Создаем пользователя
 - name: "Add user for node_exporter"
   ansible.builtin.user:
-    name: node_exporter
-    group: node_exporter
+    name: {{ user_node_exporter }}
+    group: {{ user_node_exporter }}
     shell: /bin/false
-    comment: node_exporter user
 
 # Проверяем установлен ли экспортер на этой ноде
 - name: "Check node_exporter instans exists"
