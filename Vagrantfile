@@ -13,9 +13,6 @@ Vagrant.configure("2") do |config|
 #      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
 #      systemctl restart sshd.service
     SHELL
-    host.vm.provision "ansible" do |ansible|
-        ansible.playbook = "playbook.yaml"
-    end
   end
 
 end
