@@ -1,0 +1,41 @@
+---
+# Проверяем есть ли джоба в конфиге прометиуса и пишем в переменную
+- name: "[Add ip node to Prometheus] Check job nodes in prometheus config"
+  delegate_to: "{{ server }}"
+  ansible.builtin.command:
+    cmd: "grep -i \"job_name: nodes\" /etc/prometheus/prometheus.yml"
+  register: job_nodes
+  changed_when: no
+  ignore_errors: yes
+
+# Проверяем есть ли ip ноды в конфиге прометиуса
+- name: "[Add ip node to Prometheus] Check ip node to config prometheus"
+  delegate_to: "{{ server }}"
+  ansible.builtin.command:
+    cmd: "grep -i {{ ip_node }} /etc/prometheus/prometheus.yml"
+  register: ip_node_prometheus
+  changed_when: no
+  ignore_errors: yes
+
+
+# Если джобы нет - генерируем из шаблона блок и вставляем
+- name: "[Add ip node to Prometheus] Add new job nodes"
+  delegate_to: "{{ server }}"
+  lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regex: "# node_exporters"
+    insertafter: "^# node_exporters"
+    line: "{{ lookup('template', 'job_nodes.j2') }}"
+  when: job_nodes.rc > 0
+  notify: Reload systemd prometheus
+
+# Если джоба есть, но нет ip ноды - тогда добавляем в джобу ip
+- name: "[Add ip node to Prometheus] Add new ip node_exporter to config prometheus"
+  delegate_to: "{{ server }}"
+  ansible.builtin.blockinfile:
+    path: /etc/prometheus/prometheus.yml
+    insertafter: "# insert ip"
+    block: |2
+                - "{{ ip_node }}:9090"
+  when: ip_node_prometheus.rc > 0
+  notify: Reload systemd prometheus

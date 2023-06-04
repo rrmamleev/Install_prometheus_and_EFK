@@ -1,0 +1,67 @@
+
+---
+# tasks for install and config for node_exporter
+
+# Создаем группу для экспортера
+- name: "Make group for node_exporter"
+  ansible.builtin.group:
+    name: node_exporter
+    state: present
+
+# Создаем пользователя
+- name: "Add user for node_exporter"
+  ansible.builtin.user:
+    name: node_exporter
+    group: node_exporter
+    shell: /bin/false
+    comment: node_exporter user
+
+# Проверяем установлен ли экспортер на этой ноде
+- name: "Check node_exporter instans exists"
+  ansible.builtin.stat:
+    path: "/usr/local/bin/node_exporter"
+  register: node_exporter_bin
+
+# Создаем временную папку
+- name: "Create temp directory for node_exporter"
+  ansible.builtin.file:
+    path: /tmp/node
+    state: directory
+    mode: 0755
+
+# Скачиваем архив и распаковываем его
+- name: "Download and unarchive node_exporter in temp directory."
+  ansible.builtin.unarchive:
+    src: "{{ node_export_url_ver }}"
+    dest: /tmp/node
+    remote_src: true
+    list_files: yes
+    extra_opts: [--strip-components=1]
+
+# Копируем экспортер на место и задаем права
+- name: "Copy node_exporter for instance folder and change permissions."
+  ansible.builtin.copy:
+    src: /tmp/node/node_exporter
+    dest: /usr/local/bin/node_exporter
+    mode: 0755
+    remote_src: true
+
+# Создаем сервис для экспортера
+- name: "Install node_exporter systemd file"
+  ansible.builtin.template:
+    src: node_export_systemd_unit.j2
+    dest: /usr/lib/systemd/system/node_exporter.service
+  notify:
+  - Restart systemd unit node_exporter
+
+# Стартуем сервис, если он не был запущен ранее
+- name: "Start systemd service to lunch node_exporter"
+  ansible.builtin.systemd:
+    daemon-reload: true
+    state: started
+    enabled: yes
+    name: node_exporter
+  when: not node_exporter_bin.stat.exists
+
+# Вставляем задачи для добавления экспортера в конфиг прометиуса
+- include_tasks: add_node_ip_to_prometheus.yaml
